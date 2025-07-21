@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Home Web</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      text-align: center;
+      padding: 30px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      background: #f44336;
+      color: white;
+    }
+    button.on {
+      background: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kontrol Relay Smart Home</h1>
+  <div class="grid" id="relayGrid"></div>
+
+  <script>
+    const ESP1_IP = "http://192.168.1.3";
+    const relayStates = [false, false, false, false];
+
+    function renderButtons() {
+      const grid = document.getElementById("relayGrid");
+      grid.innerHTML = "";
+      for (let i = 0; i < 4; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = relayStates[i] ? "ON" : "OFF";
+        btn.className = relayStates[i] ? "on" : "";
+        btn.onclick = () => toggleRelay(i + 1, btn);
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<div>Relay ${i + 1}</div>`;
+        card.appendChild(btn);
+        grid.appendChild(card);
+      }
+    }
+
+    function toggleRelay(ch, btn) {
+      relayStates[ch - 1] = !relayStates[ch - 1];
+      const state = relayStates[ch - 1] ? "on" : "off";
+      fetch(`${ESP1_IP}/relay?ch=${ch}&state=${state}`)
+        .then(() => {
+          btn.textContent = state.toUpperCase();
+          btn.classList.toggle("on", state === "on");
+        })
+        .catch(() => {
+          location.reload(); // 🔁 Auto reload saat gagal
+        });
+    }
+
+    function getStatus() {
+      fetch(`${ESP1_IP}/status`)
+        .then(res => res.json())
+        .then(data => {
+          for (let i = 0; i < 4; i++) {
+            relayStates[i] = data[`relay${i+1}`];
+          }
+          renderButtons();
+        })
+        .catch(() => {
+          location.reload(); // 🔁 Auto reload jika tidak dapat konek ESP
+        });
+    }
+
+    getStatus();
+    setInterval(getStatus, 3000);
+  </script>
+</body>
+</html>
