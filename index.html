@@ -35,15 +35,22 @@
     button.on {
       background: #4CAF50;
     }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
   <h1>Kontrol Relay Smart Home</h1>
   <div class="grid" id="relayGrid"></div>
+  <div id="status"></div>
 
   <script>
     const ESP1_IP = "http://192.168.1.3";
     const relayStates = [false, false, false, false];
+    const statusEl = document.getElementById("status");
 
     function renderButtons() {
       const grid = document.getElementById("relayGrid");
@@ -70,7 +77,10 @@
           btn.classList.toggle("on", state === "on");
         })
         .catch(() => {
-          location.reload(); // 🔁 Auto reload saat gagal
+          statusEl.textContent = "Gagal menghubungi ESP. Mencoba ulang dalam 10 detik...";
+          setTimeout(() => {
+            location.reload();
+          }, 10000); // 10 detik
         });
     }
 
@@ -84,7 +94,10 @@
           renderButtons();
         })
         .catch(() => {
-          location.reload(); // 🔁 Auto reload jika tidak dapat konek ESP
+          statusEl.textContent = "Tidak dapat mengambil status dari ESP. Reload dalam 10 detik...";
+          setTimeout(() => {
+            location.reload();
+          }, 10000); // 10 detik
         });
     }
 
