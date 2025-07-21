@@ -99,10 +99,10 @@
     const broker = "wss://broker.hivemq.com:8884/mqtt";
     const topicControl = "esp/relay";
     const topicStatus = "esp/status";
+    const topicStatusGet = "esp/status/get";
 
     const relayCount = 4;
     const relayStates = Array(relayCount).fill(false);
-
     const client = mqtt.connect(broker, {
       clientId: "web-ui-" + Math.random().toString(16).substr(2, 8)
     });
@@ -130,10 +130,6 @@
       relayContainer.appendChild(row);
     }
 
-    for (let i = 0; i < relayCount; i++) {
-      createRelayUI(i);
-    }
-
     function updateRelayUI() {
       const rows = document.querySelectorAll(".relay-row");
       rows.forEach((row, i) => {
@@ -150,11 +146,21 @@
       });
     }
 
+    // Buat UI untuk semua relay
+    for (let i = 0; i < relayCount; i++) {
+      createRelayUI(i);
+    }
+
+    // Saat koneksi berhasil ke broker
     client.on("connect", () => {
       console.log("✅ Terhubung ke broker MQTT");
       client.subscribe(topicStatus);
+
+      // Minta status awal dari ESP
+      client.publish(topicStatusGet, "request");
     });
 
+    // Saat pesan diterima
     client.on("message", (topic, message) => {
       if (topic === topicStatus) {
         try {
