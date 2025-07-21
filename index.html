@@ -3,59 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kontrol Relay ESP8266</title>
+  <title>Kontrol Relay MQTT</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; }
-    .relay { margin: 1rem; }
-    button { padding: 1rem 2rem; font-size: 1.2rem; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .relay {
+      margin: 10px;
+      padding: 20px;
+      border: 1px solid #aaa;
+      border-radius: 10px;
+      display: inline-block;
+      width: 200px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Kontrol Relay ESP8266</h1>
-  <div id="relays"></div>
+  <h1>Kendali Relay via MQTT</h1>
+  <div id="relays">
+    <!-- Kontrol 4 Relay -->
+    <div class="relay" id="relay1">Relay 1<br>
+      <button onclick="sendCommand(1, 'on')">ON</button>
+      <button onclick="sendCommand(1, 'off')">OFF</button>
+      <p>Status: <span id="status1">-</span></p>
+    </div>
+    <div class="relay" id="relay2">Relay 2<br>
+      <button onclick="sendCommand(2, 'on')">ON</button>
+      <button onclick="sendCommand(2, 'off')">OFF</button>
+      <p>Status: <span id="status2">-</span></p>
+    </div>
+    <div class="relay" id="relay3">Relay 3<br>
+      <button onclick="sendCommand(3, 'on')">ON</button>
+      <button onclick="sendCommand(3, 'off')">OFF</button>
+      <p>Status: <span id="status3">-</span></p>
+    </div>
+    <div class="relay" id="relay4">Relay 4<br>
+      <button onclick="sendCommand(4, 'on')">ON</button>
+      <button onclick="sendCommand(4, 'off')">OFF</button>
+      <p>Status: <span id="status4">-</span></p>
+    </div>
+  </div>
 
   <script>
-    const ESP_IP = "http://192.168.1.3"; // Ganti IP sesuai dengan IP ESP8266 kamu
+    const broker = "wss://broker.hivemq.com:8884/mqtt";
+    const topicControl = "esp/relay";
+    const topicStatus = "esp/status";
 
-    const relayContainer = document.getElementById("relays");
+    const client = mqtt.connect(broker, {
+      clientId: "web-client-" + Math.random().toString(16).substr(2, 8)
+    });
 
-    // Tampilkan 4 relay
-    for (let i = 1; i <= 4; i++) {
-      const div = document.createElement("div");
-      div.className = "relay";
-      div.innerHTML = `
-        <button onclick="toggleRelay(${i})" id="btn${i}">Relay ${i}</button>
-      `;
-      relayContainer.appendChild(div);
+    client.on("connect", () => {
+      console.log("MQTT Connected!");
+      client.subscribe(topicStatus);
+    });
+
+    client.on("message", (topic, message) => {
+      if (topic === topicStatus) {
+        const data = JSON.parse(message.toString());
+        for (let i = 1; i <= 4; i++) {
+          document.getElementById("status" + i).innerText = data["relay" + i] ? "ON" : "OFF";
+        }
+      }
+    });
+
+    function sendCommand(ch, state) {
+      const msg = ch + ":" + state; // contoh: "1:on"
+      client.publish(topicControl, msg);
     }
-
-    function toggleRelay(ch) {
-      fetch(`${ESP_IP}/toggle?ch=${ch}`)
-        .then(res => res.text())
-        .then(() => getStatus())
-        .catch(() => {
-          alert("Gagal terhubung ke ESP. Mencoba reload ulang...");
-          setTimeout(() => location.reload(), 10000);
-        });
-    }
-
-    function getStatus() {
-      fetch(`${ESP_IP}/status`)
-        .then(res => res.json())
-        .then(data => {
-          for (let i = 1; i <= 4; i++) {
-            const btn = document.getElementById(`btn${i}`);
-            btn.style.background = data[`relay${i}`] ? "limegreen" : "gray";
-          }
-        })
-        .catch(() => {
-          console.warn("ESP tidak merespons, reload dalam 10 detik...");
-          setTimeout(() => location.reload(), 10000);
-        });
-    }
-
-    getStatus();
-    setInterval(getStatus, 5000); // update status setiap 5 detik
   </script>
 </body>
 </html>
